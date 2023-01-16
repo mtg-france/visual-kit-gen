@@ -31,3 +31,6 @@ Vous pouvez ensuite utiliser l'une des options décrites ci-dessous pour personna
 ```
 
 Avec la commande `pack` seules les options `--margin` et `--out` sont supportées.
+
+Lorsque vous exécutez la commande pack, chaque image du dossier back est utilisée pour générer une image avec votre communauté, avec des réglages parfois personnalisé selon l'image.
+Ces réglages peuvent être récupérés à partir du fichier [Program.cs](https://github.com/mtg-france/visual-kit-gen/blob/main/Program.cs#L113).
