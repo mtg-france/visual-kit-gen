@@ -8,6 +8,8 @@ using System.CommandLine;
 const int DefaultRatioBackWidth = 2560;
 const int DefaultRatioBackHeight = 1440;
 const int DefaultMargin = 50;
+const float DefaultBlend = .9f;
+const int RectInflate = 20;
 
 var communityArgument = new Argument<string>(name: "Community", description: "Name of the community");
 
@@ -29,10 +31,10 @@ marginOption.AddAlias("-m");
 var positionOption = new Option<LogoPosition>(name: "--position", () => LogoPosition.Center, description: "Logo position");
 positionOption.AddAlias("-p");
 
-var rectOption = new Option<bool>(name: "--rect", description: "Draws a back rectangle behind the community name");
+var rectOption = new Option<bool>(name: "--rect", () => false, description: "Draws a back rectangle behind the community name");
 rectOption.AddAlias("-r");
 
-var rectOpacityOption = new Option<float>(name: "--rect-opacity", () => .9f, description: "Opacity of the back rectangle. 1 for fully opaque, 0 for transparent");
+var rectOpacityOption = new Option<float>(name: "--rect-opacity", () => DefaultBlend, description: "Opacity of the back rectangle. 1 for fully opaque, 0 for transparent");
 rectOpacityOption.AddAlias("-ro");
 
 var rectColorOption = new Option<string>(name: "--rect-color", description: "Color of the back rectangle, in #hex format, #ffffff by default for light, #2f2f2f for dark");
@@ -122,7 +124,7 @@ packCommand.SetHandler((community, @out, margin) =>
     WriteLogoImage(community, outDir, @"backs/screen_08_dark.png", margin: margin);
     WriteLogoImage(community, outDir, @"backs/screen_08_light.png", light: true, margin: margin);
     WriteLogoImage(community, outDir, @"backs/twitter_dark.png", margin: margin, customScale: 0.9f);
-    WriteLogoImage(community, outDir, @"backs/twitter_light.png", light: true, margin: margin, customScale: 0.9f);
+    WriteLogoImage(community, outDir, @"backs/twitter_light.png", light: true, margin: margin, customScale: 0.9f, rect: true);
     WriteLogoImage(community, outDir, @"backs/event_dark.png", margin: margin, position: LogoPosition.TopLeft, customScale: 0.7f);
     WriteLogoImage(community, outDir, @"backs/event_light.png", light: true, margin: margin, position: LogoPosition.TopLeft, customScale: 0.7f);
 
@@ -132,7 +134,17 @@ rootCommand.AddCommand(packCommand);
 
 return await rootCommand.InvokeAsync(args);
 
-string WriteLogoImage(string community, string @out, string back, LogoPosition position = LogoPosition.Center, bool light = false, float customScale = 0, int margin = DefaultMargin, bool rect = false, float rectOpacity = 0.9f, string? rectColor = null)
+string WriteLogoImage(
+    string community,
+    string @out,
+    string back,
+    LogoPosition position = LogoPosition.Center,
+    bool light = false,
+    float customScale = 0,
+    int margin = DefaultMargin,
+    bool rect = false,
+    float rectOpacity = DefaultBlend,
+    string? rectColor = null)
 {
     using var backImg = AddLogoToImage(community, back, position, light, customScale, margin, rect, rectOpacity, rectColor);
 
@@ -143,7 +155,16 @@ string WriteLogoImage(string community, string @out, string back, LogoPosition p
     return @out;
 }
 
-Image AddLogoToImage(string community, string back, LogoPosition position = LogoPosition.Center, bool light = false, float customScale = 0, int margin = DefaultMargin, bool rect = false, float rectOpacity = 0.9f, string? rectColor = null)
+Image AddLogoToImage(
+    string community,
+    string back,
+    LogoPosition position,
+    bool light,
+    float customScale,
+    int margin,
+    bool rect,
+    float rectOpacity,
+    string? rectColor)
 {
     FontCollection collection = new();
     var family = collection.Add("Lato-Bold.ttf");
@@ -221,7 +242,7 @@ Image AddLogoToImage(string community, string back, LogoPosition position = Logo
     if (rect)
     {
         var rectBounds = new RectangleF(p.X, p.Y, logo.Width, logo.Height);
-        rectBounds.Inflate(20, 20);
+        rectBounds.Inflate(RectInflate, RectInflate);
 
         var rectColorValue = rectColor switch
         {
@@ -229,7 +250,7 @@ Image AddLogoToImage(string community, string back, LogoPosition position = Logo
             _ => Color.ParseHex(rectColor.TrimStart('#'))
         };
 
-        var go = new DrawingOptions { GraphicsOptions = new GraphicsOptions { BlendPercentage = rectOpacity, ColorBlendingMode = PixelColorBlendingMode.Darken } };
+        var go = new DrawingOptions { GraphicsOptions = new GraphicsOptions { BlendPercentage = rectOpacity, ColorBlendingMode = PixelColorBlendingMode.Normal } };
         backImg.Mutate(x => x.Fill(go, rectColorValue, rectBounds));
     }
 
