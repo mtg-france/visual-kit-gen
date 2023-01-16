@@ -1,5 +1,11 @@
 # Community Logo Pack Generator
 
+Cet outil vous permet de générer un kit visuel complet pour votre communauté, personnalisé avec son nom.
+Vous pouvez utiliser directement les fichiers générés, ou bien les personnaliser.
+
+* Le dossier `backs` contient tous les fichiers de référence utilisés en fond
+* Le dossier `france` contient un exemple de rendu de la commande `dotnet run -- France pack`
+
 Nécessite le SDK .NET 7.0 sur votre poste.
 
 Utilisez la commande `dotnet run -- <Community> pack` pour générer tous les logos pour votre communauté dans un dossier `out`.
