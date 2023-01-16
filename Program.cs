@@ -23,11 +23,20 @@ lightOption.AddAlias("-l");
 var scaleOption = new Option<float>(name: "--scale", description: "Scale factor for the logo");
 scaleOption.AddAlias("-s");
 
-var marginOption = new Option<int>(name: "--margin", () => DefaultMargin, description: "Margin in pixel with the border of the image. defaults to 60px");
+var marginOption = new Option<int>(name: "--margin", () => DefaultMargin, description: "Margin in pixel with the border of the image");
 marginOption.AddAlias("-m");
 
 var positionOption = new Option<LogoPosition>(name: "--position", () => LogoPosition.Center, description: "Logo position");
 positionOption.AddAlias("-p");
+
+var rectOption = new Option<bool>(name: "--rect", description: "Draws a back rectangle behind the community name");
+rectOption.AddAlias("-r");
+
+var rectOpacityOption = new Option<float>(name: "--rect-opacity", () => .9f, description: "Opacity of the back rectangle. 1 for fully opaque, 0 for transparent");
+rectOpacityOption.AddAlias("-ro");
+
+var rectColorOption = new Option<string>(name: "--rect-color", description: "Color of the back rectangle, in #hex format, #ffffff by default for light, #2f2f2f for dark");
+rectColorOption.AddAlias("-rc");
 
 ////////////////////////////////////////////////
 //
@@ -40,11 +49,29 @@ var rootCommand = new RootCommand("Generate a community logo");
 rootCommand.AddArgument(communityArgument);
 rootCommand.AddOption(backOption);
 rootCommand.AddOption(outOption);
+rootCommand.AddOption(marginOption);
 rootCommand.AddOption(lightOption);
 rootCommand.AddOption(scaleOption);
 rootCommand.AddOption(positionOption);
-rootCommand.SetHandler((community, back, @out, light, scale, margin, position) =>
+rootCommand.AddOption(rectOption);
+rootCommand.AddOption(rectOpacityOption);
+rootCommand.AddOption(rectColorOption);
+
+rootCommand.SetHandler(context =>
 {
+    var community = context.ParseResult.GetValueForArgument(communityArgument);
+    var back = context.ParseResult.GetValueForOption(backOption);
+    var @out = context.ParseResult.GetValueForOption(outOption);
+    var light = context.ParseResult.GetValueForOption(lightOption);
+    var scale = context.ParseResult.GetValueForOption(scaleOption);
+    var margin = context.ParseResult.GetValueForOption(marginOption);
+    var position = context.ParseResult.GetValueForOption(positionOption);
+    var rect = context.ParseResult.GetValueForOption(rectOption);
+    var rectOpacity = context.ParseResult.GetValueForOption(rectOpacityOption);
+    var rectColor = context.ParseResult.GetValueForOption(rectColorOption);
+
+    back ??= "screen_01";
+
     // default based on file's name ending
     light ??= (back.EndsWith("light"));
 
@@ -59,22 +86,26 @@ rootCommand.SetHandler((community, back, @out, light, scale, margin, position) =
     if (string.IsNullOrEmpty(@out))
         @out = "out";
 
-    WriteLogoImage(community, @out, back, position: position, light ?? false, scale, margin);
-}, communityArgument, backOption, outOption, lightOption, scaleOption, marginOption, positionOption);
+    @out = WriteLogoImage(community, @out, back, position: position, light ?? false, scale, margin, rect, rectOpacity, rectColor);
+
+    Console.WriteLine($"Logo {community} généré pour le fond {back} dans le fichier {@out}");
+});
 
 ////////////////////////////////////////////////
 //
 // Commande pack
 //
-// Génère toutes les images, 
+// Génère toutes les images
 // 
 
 var packCommand = new Command("pack", "Generate a visual pack for a community");
 packCommand.AddArgument(communityArgument);
-
-packCommand.SetHandler((community, margin) =>
+packCommand.AddOption(marginOption);
+packCommand.AddOption(outOption);
+packCommand.SetHandler((community, @out, margin) =>
 {
-    var outDir = Path.Combine(Environment.CurrentDirectory, "out");
+    @out ??= "out";
+    var outDir = Path.Combine(Environment.CurrentDirectory, @out);
     if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
 
     WriteLogoImage(community, outDir, @"backs/screen_01.png", margin: margin);
@@ -88,25 +119,31 @@ packCommand.SetHandler((community, margin) =>
     WriteLogoImage(community, outDir, @"backs/screen_06_light.png", position: LogoPosition.BottomLeft, light: true, margin: margin);
     WriteLogoImage(community, outDir, @"backs/screen_07_dark.png", margin: margin);
     WriteLogoImage(community, outDir, @"backs/screen_07_light.png", light: true, margin: margin);
+    WriteLogoImage(community, outDir, @"backs/screen_08_dark.png", margin: margin);
+    WriteLogoImage(community, outDir, @"backs/screen_08_light.png", light: true, margin: margin);
     WriteLogoImage(community, outDir, @"backs/twitter_dark.png", margin: margin, customScale: 0.9f);
     WriteLogoImage(community, outDir, @"backs/twitter_light.png", light: true, margin: margin, customScale: 0.9f);
+    WriteLogoImage(community, outDir, @"backs/event_dark.png", margin: margin, position: LogoPosition.TopLeft, customScale: 0.7f);
+    WriteLogoImage(community, outDir, @"backs/event_light.png", light: true, margin: margin, position: LogoPosition.TopLeft, customScale: 0.7f);
 
-}, communityArgument, marginOption);
+}, communityArgument, outOption, marginOption);
 
 rootCommand.AddCommand(packCommand);
 
 return await rootCommand.InvokeAsync(args);
 
-void WriteLogoImage(string community, string @out, string back, LogoPosition position = LogoPosition.Center, bool light = false, float customScale = 0, int margin = DefaultMargin)
+string WriteLogoImage(string community, string @out, string back, LogoPosition position = LogoPosition.Center, bool light = false, float customScale = 0, int margin = DefaultMargin, bool rect = false, float rectOpacity = 0.9f, string? rectColor = null)
 {
-    using var backImg = AddLogoToImage(community, back, position, light, customScale);
+    using var backImg = AddLogoToImage(community, back, position, light, customScale, margin, rect, rectOpacity, rectColor);
 
     @out = GenerateOutFileName(@out, back, community);
 
     backImg.SaveAsPng(@out);
+
+    return @out;
 }
 
-Image AddLogoToImage(string community, string back, LogoPosition position = LogoPosition.Center, bool light = false, float customScale = 0, int margin = DefaultMargin)
+Image AddLogoToImage(string community, string back, LogoPosition position = LogoPosition.Center, bool light = false, float customScale = 0, int margin = DefaultMargin, bool rect = false, float rectOpacity = 0.9f, string? rectColor = null)
 {
     FontCollection collection = new();
     var family = collection.Add("Lato-Bold.ttf");
@@ -129,11 +166,7 @@ Image AddLogoToImage(string community, string back, LogoPosition position = Logo
 
     var baseMargin = DefaultMargin;
 
-    var textColor = Color.FromRgb(0xee, 0xee, 0xee);
-    if (light)
-        textColor = Color.FromRgb(0x73, 0x73, 0x73);
-
-    using var logo = CreateMtgLogo(community, family, textColor, scale);
+    using var logo = CreateMtgLogo(community, family, light, scale);
 
     if (backImg == null)
         backImg = new Image<Abgr32>(logo.Width, logo.Height);
@@ -164,7 +197,7 @@ Image AddLogoToImage(string community, string back, LogoPosition position = Logo
             break;
 
         case LogoPosition.TopRight:
-            p = new Point(backImg.Width - logo.Width - (baseMargin), baseMargin);
+            p = new Point(backImg.Width - logo.Width - baseMargin, baseMargin);
             marginx *= -1;
             break;
 
@@ -185,13 +218,32 @@ Image AddLogoToImage(string community, string back, LogoPosition position = Logo
 
     p.Offset(marginx, marginy);
 
+    if (rect)
+    {
+        var rectBounds = new RectangleF(p.X, p.Y, logo.Width, logo.Height);
+        rectBounds.Inflate(20, 20);
+
+        var rectColorValue = rectColor switch
+        {
+            "" or null => light ? Color.White : Color.FromRgb(0x2f, 0x2f, 0x2f),
+            _ => Color.ParseHex(rectColor.TrimStart('#'))
+        };
+
+        var go = new DrawingOptions { GraphicsOptions = new GraphicsOptions { BlendPercentage = rectOpacity, ColorBlendingMode = PixelColorBlendingMode.Darken } };
+        backImg.Mutate(x => x.Fill(go, rectColorValue, rectBounds));
+    }
+
     backImg.Mutate(x => x.DrawImage(logo, p, 1));
 
     return backImg;
 }
 
-Image CreateMtgLogo(string community, FontFamily family, Color textColor, float ratio)
+Image CreateMtgLogo(string community, FontFamily family, bool light, float ratio, bool backRect = true)
 {
+    var textColor = Color.FromRgb(0xee, 0xee, 0xee);
+    if (light)
+        textColor = Color.FromRgb(0x73, 0x73, 0x73);
+
     var fontSize = 140 * ratio;
     var bulletOffset = 40 * ratio;
     var bulletSpacing = 32 * ratio;
@@ -211,7 +263,7 @@ Image CreateMtgLogo(string community, FontFamily family, Color textColor, float 
     var centerX = width / 2;
     var centerY = height / 2;
 
-    var img = new Image<Argb32>((int)(width), (int)(height));
+    var img = new Image<Argb32>((int)width, (int)height);
 
     var opt = new TextOptions(font);
     opt.VerticalAlignment = VerticalAlignment.Center;
