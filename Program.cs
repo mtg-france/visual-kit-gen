@@ -5,6 +5,8 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using System.CommandLine;
 using visual_kit_gen;
+using System.IO.Compression;
+using SixLabors.ImageSharp.Formats.Png;
 
 const int DefaultRatioBackWidth = 2560;
 const int DefaultRatioBackHeight = 1440;
@@ -88,7 +90,7 @@ rootCommand.SetHandler(context =>
 
     if (string.IsNullOrEmpty(@out))
         @out = "out";
-    
+
     @out = WriteLogoImage(community, @out, back, position: position, light ?? false, scale, margin, rect, rectOpacity, rectColor);
 
     Console.WriteLine($"Logo {community} généré pour le fond {back} dans le fichier {@out}");
@@ -108,15 +110,47 @@ packCommand.AddOption(outOption);
 packCommand.SetHandler((community, @out, margin) =>
 {
     @out ??= "out";
-    var outDir = Path.Combine(Environment.CurrentDirectory, @out);
-    if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
+
+    var outExt = Path.GetExtension(@out);
+    ZipArchive? zipArchive = null;
+
+    if (outExt == ".zip")
+    {
+        var zipFile = File.Create(@out);
+        zipArchive = new ZipArchive(zipFile, ZipArchiveMode.Create);
+    }
+    else
+    {
+        var outDir = Path.Combine(Environment.CurrentDirectory, @out);
+        if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
+    }
+
+
 
     var images = GenerateImages(community, margin);
     foreach (var (img, source) in images)
     {
         var imageOut = GenerateOutFileName(@out, source, community);
-        img.SaveAsPng(@out);
+
+        Stream destStream;
+        if (zipArchive != null)
+        {
+            var entry = zipArchive.CreateEntry(imageOut);
+            destStream = entry.Open();
+        }
+        else
+        {
+            destStream = File.OpenWrite(imageOut);
+        }
+
+        img.Save(destStream, PngFormat.Instance);
+        destStream.Close();
     }
+
+    if (zipArchive != null){
+        zipArchive.Dispose();
+    }
+
 
 }, communityArgument, outOption, marginOption);
 
@@ -170,7 +204,7 @@ string WriteLogoImage(
 
 string GenerateOutFileName(string @out, string back, string community)
 {
-    if (string.IsNullOrEmpty(@out))
+    if (string.IsNullOrEmpty(@out) || File.Exists(@out))
     {
         if (string.IsNullOrEmpty(back))
         {
