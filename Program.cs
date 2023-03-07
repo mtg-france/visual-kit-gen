@@ -4,6 +4,9 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using System.CommandLine;
+using visual_kit_gen;
+using System.IO.Compression;
+using SixLabors.ImageSharp.Formats.Png;
 
 const int DefaultRatioBackWidth = 2560;
 const int DefaultRatioBackHeight = 1440;
@@ -107,26 +110,47 @@ packCommand.AddOption(outOption);
 packCommand.SetHandler((community, @out, margin) =>
 {
     @out ??= "out";
-    var outDir = Path.Combine(Environment.CurrentDirectory, @out);
-    if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
 
-    WriteLogoImage(community, outDir, @"backs/screen_01.png", margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_02.png", margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_03.png", margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_04_dark.png", position: LogoPosition.CenterLeft, margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_04_light.png", position: LogoPosition.CenterLeft, light: true, margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_05_dark.png", position: LogoPosition.TopLeft, margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_05_light.png", position: LogoPosition.TopLeft, light: true, margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_06_dark.png", position: LogoPosition.BottomLeft, margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_06_light.png", position: LogoPosition.BottomLeft, light: true, margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_07_dark.png", margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_07_light.png", light: true, margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_08_dark.png", margin: margin);
-    WriteLogoImage(community, outDir, @"backs/screen_08_light.png", light: true, margin: margin);
-    WriteLogoImage(community, outDir, @"backs/twitter_dark.png", margin: margin, customScale: 0.9f);
-    WriteLogoImage(community, outDir, @"backs/twitter_light.png", light: true, margin: margin, customScale: 0.9f, rect: true);
-    WriteLogoImage(community, outDir, @"backs/event_dark.png", margin: margin, position: LogoPosition.TopLeft, customScale: 0.7f);
-    WriteLogoImage(community, outDir, @"backs/event_light.png", light: true, margin: margin, position: LogoPosition.TopLeft, customScale: 0.7f);
+    var outExt = Path.GetExtension(@out);
+    ZipArchive? zipArchive = null;
+
+    if (outExt == ".zip")
+    {
+        var zipFile = File.Create(@out);
+        zipArchive = new ZipArchive(zipFile, ZipArchiveMode.Create);
+    }
+    else
+    {
+        var outDir = Path.Combine(Environment.CurrentDirectory, @out);
+        if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
+    }
+
+
+
+    var images = GenerateImages(community, margin);
+    foreach (var (img, source) in images)
+    {
+        var imageOut = GenerateOutFileName(@out, source, community);
+
+        Stream destStream;
+        if (zipArchive != null)
+        {
+            var entry = zipArchive.CreateEntry(imageOut);
+            destStream = entry.Open();
+        }
+        else
+        {
+            destStream = File.OpenWrite(imageOut);
+        }
+
+        img.Save(destStream, PngFormat.Instance);
+        destStream.Close();
+    }
+
+    if (zipArchive != null){
+        zipArchive.Dispose();
+    }
+
 
 }, communityArgument, outOption, marginOption);
 
@@ -134,19 +158,42 @@ rootCommand.AddCommand(packCommand);
 
 return await rootCommand.InvokeAsync(args);
 
-string WriteLogoImage(
-    string community,
-    string @out,
-    string back,
-    LogoPosition position = LogoPosition.Center,
-    bool light = false,
-    float customScale = 0,
-    int margin = DefaultMargin,
-    bool rect = false,
-    float rectOpacity = DefaultBlend,
-    string? rectColor = null)
+IEnumerable<(Image Image, string SourceFile)> GenerateImages(string community, int margin)
 {
-    using var backImg = AddLogoToImage(community, back, position, light, customScale, margin, rect, rectOpacity, rectColor);
+    var service = new LogoService();
+    yield return (service.AddLogoToImage(community, @"backs/screen_01.png", margin: margin), @"backs/screen_01.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_02.png", margin: margin), @"backs/screen_02.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_03.png", margin: margin), @"backs/screen_03.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_04_dark.png", position: LogoPosition.CenterLeft, margin: margin), @"backs/screen_04_dark.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_04_light.png", position: LogoPosition.CenterLeft, light: true, margin: margin), @"backs/screen_04_light.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_05_dark.png", position: LogoPosition.TopLeft, margin: margin), @"backs/screen_05_dark.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_05_light.png", position: LogoPosition.TopLeft, light: true, margin: margin), @"backs/screen_05_light.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_06_dark.png", position: LogoPosition.BottomLeft, margin: margin), @"backs/screen_06_dark.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_06_light.png", position: LogoPosition.BottomLeft, light: true, margin: margin), @"backs/screen_06_light.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_07_dark.png", margin: margin), @"backs/screen_07_dark.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_07_light.png", light: true, margin: margin), @"backs/screen_07_light.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_08_dark.png", margin: margin), @"backs/screen_08_dark.png");
+    yield return (service.AddLogoToImage(community, @"backs/screen_08_light.png", light: true, margin: margin), @"backs/screen_08_light.png");
+    yield return (service.AddLogoToImage(community, @"backs/twitter_dark.png", margin: margin, customScale: 0.9f), @"backs/twitter_dark.png");
+    yield return (service.AddLogoToImage(community, @"backs/twitter_light.png", light: true, margin: margin, customScale: 0.9f, rect: true), @"backs/twitter_light.png");
+    yield return (service.AddLogoToImage(community, @"backs/event_dark.png", margin: margin, position: LogoPosition.TopLeft, customScale: 0.7f), @"backs/event_dark.png");
+    yield return (service.AddLogoToImage(community, @"backs/event_light.png", light: true, margin: margin, position: LogoPosition.TopLeft, customScale: 0.7f), @"backs/event_light.png");
+}
+
+string WriteLogoImage(
+            string community,
+            string @out,
+            string back,
+            LogoPosition position = LogoPosition.Center,
+            bool light = false,
+            float customScale = 0,
+            int margin = DefaultMargin,
+            bool rect = false,
+            float rectOpacity = DefaultBlend,
+            string? rectColor = null)
+{
+    var service = new LogoService();
+    using var backImg = service.AddLogoToImage(community, back, position, light, customScale, margin, rect, rectOpacity, rectColor);
 
     @out = GenerateOutFileName(@out, back, community);
 
@@ -155,163 +202,9 @@ string WriteLogoImage(
     return @out;
 }
 
-Image AddLogoToImage(
-    string community,
-    string back,
-    LogoPosition position,
-    bool light,
-    float customScale,
-    int margin,
-    bool rect,
-    float rectOpacity,
-    string? rectColor)
-{
-    FontCollection collection = new();
-    var family = collection.Add("Lato-Bold.ttf");
-
-    var hasBack = !string.IsNullOrEmpty(back);
-
-    Image? backImg = null;
-    if (hasBack)
-        backImg = Image.Load(back);
-
-
-    // par défaut on ajuste le ratio du logo en fonction de la dimension de l'image de fond pour toujours représenter le même % de l'image
-    var scale = 1f;
-    if (backImg != null)
-        scale = Math.Max(backImg.Width / (float)DefaultRatioBackWidth, backImg.Height / (float)DefaultRatioBackHeight);
-
-    // si l'échelle a été personnalisé, on l'applique toujours en priorité
-    if (customScale != 0)
-        scale = customScale;
-
-    var baseMargin = DefaultMargin;
-
-    using var logo = CreateMtgLogo(community, family, light, scale);
-
-    if (backImg == null)
-        backImg = new Image<Abgr32>(logo.Width, logo.Height);
-
-    var marginx = margin;
-    var marginy = margin;
-
-    Point p;
-
-    switch (position)
-    {
-        case LogoPosition.TopLeft:
-            p = new Point(baseMargin, baseMargin);
-            break;
-        case LogoPosition.CenterLeft:
-            p = new Point(baseMargin, (backImg.Height - logo.Height) / 2);
-            marginy = 0;
-            break;
-        case LogoPosition.BottomLeft:
-            p = new Point(baseMargin, backImg.Height - logo.Height - baseMargin);
-            marginy *= -1;
-            break;
-
-        case LogoPosition.Center:
-            p = new Point((backImg.Width - logo.Width) / 2, (backImg.Height - logo.Height) / 2);
-            marginx = 0;
-            marginy = 0;
-            break;
-
-        case LogoPosition.TopRight:
-            p = new Point(backImg.Width - logo.Width - baseMargin, baseMargin);
-            marginx *= -1;
-            break;
-
-        case LogoPosition.CenterRight:
-            p = new Point(backImg.Width - logo.Width - baseMargin, (backImg.Height - logo.Height) / 2 - baseMargin);
-            marginx *= -1;
-            marginy = 0;
-            break;
-
-        case LogoPosition.BottomRight:
-            p = new Point(backImg.Width - logo.Width - baseMargin, backImg.Height - logo.Height - baseMargin);
-            marginx *= -1;
-            marginy *= -1;
-            break;
-        default:
-            throw new NotSupportedException(position.ToString());
-    }
-
-    p.Offset(marginx, marginy);
-
-    if (rect)
-    {
-        var rectBounds = new RectangleF(p.X, p.Y, logo.Width, logo.Height);
-        rectBounds.Inflate(RectInflate, RectInflate);
-
-        var rectColorValue = rectColor switch
-        {
-            "" or null => light ? Color.White : Color.FromRgb(0x2f, 0x2f, 0x2f),
-            _ => Color.ParseHex(rectColor.TrimStart('#'))
-        };
-
-        var go = new DrawingOptions { GraphicsOptions = new GraphicsOptions { BlendPercentage = rectOpacity, ColorBlendingMode = PixelColorBlendingMode.Normal } };
-        backImg.Mutate(x => x.Fill(go, rectColorValue, rectBounds));
-    }
-
-    backImg.Mutate(x => x.DrawImage(logo, p, 1));
-
-    return backImg;
-}
-
-Image CreateMtgLogo(string community, FontFamily family, bool light, float ratio, bool backRect = true)
-{
-    var textColor = Color.FromRgb(0xee, 0xee, 0xee);
-    if (light)
-        textColor = Color.FromRgb(0x73, 0x73, 0x73);
-
-    var fontSize = 140 * ratio;
-    var bulletOffset = 40 * ratio;
-    var bulletSpacing = 32 * ratio;
-    var logoRatio = .1f * ratio;
-    var cornerXOffset = 64 * ratio;
-    var cornerYOffset = 17 * ratio;
-
-    var font = family.CreateFont(fontSize, FontStyle.Italic);
-
-    var text = $"MTG  {community}";
-    var textRect = TextMeasurer.Measure(text, new TextOptions(font));
-    var mtgRect = TextMeasurer.Measure($"MTG", new TextOptions(font));
-
-    var width = textRect.Width + cornerXOffset;
-    var height = textRect.Height + cornerYOffset;
-
-    var centerX = width / 2;
-    var centerY = height / 2;
-
-    var img = new Image<Argb32>((int)width, (int)height);
-
-    var opt = new TextOptions(font);
-    opt.VerticalAlignment = VerticalAlignment.Center;
-    opt.HorizontalAlignment = HorizontalAlignment.Center;
-    opt.Origin = new PointF(centerX, centerY);
-
-    img.Mutate(x => x.DrawText(opt, text, textColor));
-
-    using Image topLeftImg = Image.Load("logo_topleft.png");
-    topLeftImg.Mutate(x => x.Resize((int)(topLeftImg.Width * logoRatio), (int)(topLeftImg.Height * logoRatio)));
-    img.Mutate(x => x.DrawImage(topLeftImg, new Point(0, 0), 1));
-
-    using Image bulletImg = Image.Load("logo_bullets.png");
-    bulletImg.Mutate(x => x.Resize((int)(bulletImg.Width * logoRatio), (int)(bulletImg.Height * logoRatio)));
-    img.Mutate(x => x.DrawImage(bulletImg, new Point((int)(mtgRect.Width + bulletOffset + ((bulletSpacing - bulletImg.Width) / 2)), (img.Height - bulletImg.Height) / 2), 1));
-
-    using Image bottomRightImg = Image.Load("logo_bottomRight.png");
-    bottomRightImg.Mutate(x => x.Resize((int)(bottomRightImg.Width * logoRatio), (int)(bottomRightImg.Height * logoRatio)));
-    var p = new Point((int)(width - bottomRightImg.Width), (int)(height - bottomRightImg.Height));
-    img.Mutate(x => x.DrawImage(bottomRightImg, p, 1));
-
-    return img;
-}
-
 string GenerateOutFileName(string @out, string back, string community)
 {
-    if (string.IsNullOrEmpty(@out))
+    if (string.IsNullOrEmpty(@out) || File.Exists(@out))
     {
         if (string.IsNullOrEmpty(back))
         {
@@ -334,15 +227,4 @@ string GenerateOutFileName(string @out, string back, string community)
         }
     }
     return @out;
-}
-
-enum LogoPosition
-{
-    Center,
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
-    CenterLeft,
-    CenterRight,
 }

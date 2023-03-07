@@ -1,19 +1,19 @@
 # Community Logo Pack Generator
 
-Cet outil vous permet de générer un kit visuel complet pour votre communauté, personnalisé avec son nom.
-Vous pouvez utiliser directement les fichiers générés, ou bien les personnaliser.
+Cet outil vous permet de gÃ©nÃ©rer un kit visuel complet pour votre communautÃ©, personnalisÃ© avec son nom, en complÃ©ment [du gÃ©nÃ©rateur de logo](https://github.com/mtg-x/logo-generator) dÃ©jÃ  existant.
+Vous pouvez utiliser directement les fichiers gÃ©nÃ©rÃ©s, ou bien les personnaliser.
 
-* Le dossier `backs` contient tous les fichiers de référence utilisés en fond
+* Le dossier `backs` contient tous les fichiers de rÃ©fÃ©rence utilisÃ©s en fond
 * Le dossier `france` contient un exemple de rendu de la commande `dotnet run -- France pack`
 
-Nécessite le SDK .NET 7.0 sur votre poste.
+NÃ©cessite le SDK .NET 7.0 sur votre poste.
 
-Utilisez la commande `dotnet run -- <Community> pack` pour générer tous les logos pour votre communauté dans un dossier `out`.
+Utilisez la commande `dotnet run -- <Community> pack` pour gÃ©nÃ©rer tous les logos pour votre communautÃ© dans un dossier `out`.
 
-Si vous souhaitez personnaliser le rendu d'un visuel, utilisez la commande `dotnet run -- <Community> -b <back>` en remplaçant back par le nom d'un fichier
-de fond présent dans le dossier `backs`.
+Si vous souhaitez personnaliser le rendu d'un visuel, utilisez la commande `dotnet run -- <Community> -b <back>` en remplaÃ§ant back par le nom d'un fichier
+de fond prÃ©sent dans le dossier `backs`.
 
-Vous pouvez ensuite utiliser l'une des options décrites ci-dessous pour personnaliser le rendu de l'image.
+Vous pouvez ensuite utiliser l'une des options dÃ©crites ci-dessous pour personnaliser le rendu de l'image.
 
 ## Options
 
@@ -30,7 +30,7 @@ Vous pouvez ensuite utiliser l'une des options décrites ci-dessous pour personna
   -rc, --rect-color <rect-color>                              Color of the back rectangle, in #hex format, #ffffff by default for light, #2f2f2f for dark
 ```
 
-Avec la commande `pack` seules les options `--margin` et `--out` sont supportées.
+Avec la commande `pack` seules les options `--margin` et `--out` sont supportÃ©es.
 
-Lorsque vous exécutez la commande pack, chaque image du dossier back est utilisée pour générer une image avec votre communauté, avec des réglages parfois personnalisé selon l'image.
-Ces réglages peuvent être récupérés à partir du fichier [Program.cs](https://github.com/mtg-france/visual-kit-gen/blob/main/Program.cs#L113).
+Lorsque vous exÃ©cutez la commande pack, chaque image du dossier back est utilisÃ©e pour gÃ©nÃ©rer une image avec votre communautÃ©, avec des rÃ©glages parfois personnalisÃ© selon l'image.
+Ces rÃ©glages peuvent Ãªtre rÃ©cupÃ©rÃ©s Ã  partir du fichier [Program.cs](https://github.com/mtg-france/visual-kit-gen/blob/main/Program.cs#L113).
