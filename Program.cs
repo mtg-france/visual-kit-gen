@@ -75,13 +75,14 @@ rootCommand.SetHandler(context =>
     var rectOpacity = context.ParseResult.GetValueForOption(rectOpacityOption);
     var rectColor = context.ParseResult.GetValueForOption(rectColorOption);
 
-    back ??= "screen_01";
+    // defaults to empty = no background
+    back ??= "";
 
     // default based on file's name ending
     light ??= (back.EndsWith("light"));
 
     // we support omitting the .png extension
-    if (Path.GetExtension(back) == string.Empty)
+    if (!string.IsNullOrEmpty(back) && Path.GetExtension(back) == string.Empty)
         back += ".png";
 
     // we support omitting the backs\ prefix
