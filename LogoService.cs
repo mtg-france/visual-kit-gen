@@ -50,59 +50,42 @@ namespace visual_kit_gen
             if (customScale != 0)
                 scale = customScale;
 
-            var baseMargin = DefaultMargin;
-
             using var logo = CreateMtgLogo(community, family, light, scale);
 
             if (backImg == null)
                 backImg = new Image<Abgr32>(logo.Width, logo.Height);
 
-            var marginx = margin;
-            var marginy = margin;
-
             Point p;
-
             switch (position)
             {
                 case LogoPosition.TopLeft:
-                    p = new Point(baseMargin, baseMargin);
+                    p = new Point(margin, margin);
                     break;
                 case LogoPosition.CenterLeft:
-                    p = new Point(baseMargin, (backImg.Height - logo.Height) / 2);
-                    marginy = 0;
+                    p = new Point(margin, (backImg.Height - logo.Height) / 2);
                     break;
                 case LogoPosition.BottomLeft:
-                    p = new Point(baseMargin, backImg.Height - logo.Height - baseMargin);
-                    marginy *= -1;
+                    p = new Point(margin, backImg.Height - logo.Height - margin);
                     break;
 
                 case LogoPosition.Center:
                     p = new Point((backImg.Width - logo.Width) / 2, (backImg.Height - logo.Height) / 2);
-                    marginx = 0;
-                    marginy = 0;
                     break;
 
                 case LogoPosition.TopRight:
-                    p = new Point(backImg.Width - logo.Width - baseMargin, baseMargin);
-                    marginx *= -1;
+                    p = new Point(backImg.Width - logo.Width - margin, margin);
                     break;
 
                 case LogoPosition.CenterRight:
-                    p = new Point(backImg.Width - logo.Width - baseMargin, (backImg.Height - logo.Height) / 2 - baseMargin);
-                    marginx *= -1;
-                    marginy = 0;
+                    p = new Point(backImg.Width - logo.Width - margin, (backImg.Height - logo.Height) / 2);
                     break;
 
                 case LogoPosition.BottomRight:
-                    p = new Point(backImg.Width - logo.Width - baseMargin, backImg.Height - logo.Height - baseMargin);
-                    marginx *= -1;
-                    marginy *= -1;
+                    p = new Point(backImg.Width - logo.Width - margin, backImg.Height - logo.Height - margin);
                     break;
                 default:
                     throw new NotSupportedException(position.ToString());
             }
-
-            p.Offset(marginx, marginy);
 
             if (rect)
             {

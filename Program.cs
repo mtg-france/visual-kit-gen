@@ -94,7 +94,7 @@ rootCommand.SetHandler(context =>
 
     @out = WriteLogoImage(community, @out, back, position: position, light ?? false, scale, margin, rect, rectOpacity, rectColor);
 
-    Console.WriteLine($"Logo {community} généré pour le fond {back} dans le fichier {@out}");
+    Console.WriteLine($"Logo {community} généré pour le fond {back} en mode {(light ?? false ? "light" : "dark")} dans le fichier {@out}");
 });
 
 ////////////////////////////////////////////////
@@ -126,12 +126,10 @@ packCommand.SetHandler((community, @out, margin) =>
         if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
     }
 
-
-
     var images = GenerateImages(community, margin);
     foreach (var (img, source) in images)
     {
-        var imageOut = GenerateOutFileName(@out, source, community);
+        var imageOut = GenerateOutFileName(@out, source, false /* jamais utilisé */, community);
 
         Stream destStream;
         if (zipArchive != null)
@@ -148,11 +146,10 @@ packCommand.SetHandler((community, @out, margin) =>
         destStream.Close();
     }
 
-    if (zipArchive != null){
+    if (zipArchive != null)
+    {
         zipArchive.Dispose();
     }
-
-
 }, communityArgument, outOption, marginOption);
 
 rootCommand.AddCommand(packCommand);
@@ -196,20 +193,20 @@ string WriteLogoImage(
     var service = new LogoService();
     using var backImg = service.AddLogoToImage(community, back, position, light, customScale, margin, rect, rectOpacity, rectColor);
 
-    @out = GenerateOutFileName(@out, back, community);
+    @out = GenerateOutFileName(@out, back, light, community);
 
     backImg.SaveAsPng(@out);
 
     return @out;
 }
 
-string GenerateOutFileName(string @out, string back, string community)
+string GenerateOutFileName(string @out, string back, bool light, string community)
 {
     if (string.IsNullOrEmpty(@out) || File.Exists(@out))
     {
         if (string.IsNullOrEmpty(back))
         {
-            return $"{community.ToLowerInvariant()}_dark.png";
+            return $"{community.ToLowerInvariant()}_{(light ? "light" : "dark")}.png";
         }
         else
         {
@@ -220,7 +217,7 @@ string GenerateOutFileName(string @out, string back, string community)
     {
         if (string.IsNullOrEmpty(back))
         {
-            return Path.Combine(@out, $"{community.ToLowerInvariant()}_dark.png");
+            return Path.Combine(@out, $"{community.ToLowerInvariant()}_{(light ? "light" : "dark")}.png");
         }
         else
         {

@@ -8,10 +8,22 @@ Vous pouvez utiliser directement les fichiers générés, ou bien les personnali
 
 Nécessite le SDK .NET 7.0 sur votre poste.
 
+## Commande pack
+
 Utilisez la commande `dotnet run -- <Community> pack` pour générer tous les logos pour votre communauté dans un dossier `out`.
+
+## Commande par défaut
 
 Si vous souhaitez personnaliser le rendu d'un visuel, utilisez la commande `dotnet run -- <Community> -b <back>` en remplaçant back par le nom d'un fichier
 de fond présent dans le dossier `backs`.
+
+Exemple:
+
+```shell
+dotnet run -- Toulouse -b ".\backs\screen_05_dark.png" -p TopLeft -m 10 -s "0,7"
+```
+
+Génère une image basée sur screen_05_dark avec le logo en haut à gauche, une marge de 10px (au lieu de 50) et un logo avec une taille de 70% par rapport à l'original.
 
 Vous pouvez ensuite utiliser l'une des options décrites ci-dessous pour personnaliser le rendu de l'image.
 
